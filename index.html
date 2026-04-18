@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0908">
+<title>DR. DREY — Player</title>
+<link rel="preconnect" href="https://drdrey.com">
+<style>
+  :root {
+    --bg: #0a0908;
+    --bg-1: #14110e;
+    --bg-2: #1c1815;
+    --bg-3: #2a2420;
+    --line: #2e2722;
+    --text: #f5ead9;
+    --text-dim: #b5a493;
+    --text-muted: #6b5d4f;
+    --cyan: #22d3ee;
+    --cyan-dim: #0891b2;
+    --amber: #f59e0b;
+    --shadow: 0 24px 48px rgba(0,0,0,0.6);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+    min-height: 100dvh;
+    position: relative;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(34, 211, 238, 0.12), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 50% 110%, rgba(245, 158, 11, 0.08), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 32px 24px 180px;
+    min-height: 100dvh;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 48px;
+  }
+  .brand {
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .brand-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 12px var(--cyan);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .menu-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .menu-btn:hover { border-color: var(--cyan); }
+  .menu-btn svg { width: 18px; height: 18px; }
+
+  .art-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    margin-bottom: 40px;
+    perspective: 1000px;
+  }
+  .art {
+    width: 100%;
+    height: 100%;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    position: relative;
+    background: var(--bg-2);
+    transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .art.playing { animation: float 6s ease-in-out infinite; }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotateX(0); }
+    50% { transform: translateY(-6px) rotateX(2deg); }
+  }
+  .art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: opacity 0.4s;
+  }
+  .art-glow {
+    position: absolute;
+    inset: -20px;
+    border-radius: 24px;
+    z-index: -1;
+    filter: blur(40px) saturate(1.4);
+    opacity: 0.5;
+    transition: opacity 0.4s;
+    background-size: cover;
+    background-position: center;
+  }
+  .art.playing ~ .art-glow { opacity: 0.8; }
+
+  .info {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .title {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+    line-height: 1.1;
+  }
+  .artist {
+    color: var(--text-dim);
+    font-size: 14px;
+    letter-spacing: 0.04em;
+  }
+  .artist b { color: var(--cyan); font-weight: 600; }
+
+  .progress-wrap { margin-bottom: 32px; }
+  .progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--bg-2);
+    border-radius: 3px;
+    position: relative;
+    cursor: pointer;
+    overflow: visible;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan-dim), var(--cyan));
+    border-radius: 3px;
+    width: 0;
+    transition: width 0.1s linear;
+    position: relative;
+  }
+  .progress-thumb {
+    position: absolute;
+    right: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 12px var(--cyan), 0 4px 12px rgba(0,0,0,0.6);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .progress-bar:hover .progress-thumb,
+  .progress-bar.active .progress-thumb { opacity: 1; }
+  .times {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    margin-bottom: 36px;
+  }
+  .ctrl {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    border-radius: 50%;
+    position: relative;
+  }
+  .ctrl:hover { color: var(--cyan); transform: scale(1.1); }
+  .ctrl:active { transform: scale(0.95); }
+  .ctrl.small svg { width: 22px; height: 22px; }
+  .ctrl.medium svg { width: 28px; height: 28px; }
+  .ctrl.play {
+    width: 72px;
+    height: 72px;
+    background: var(--cyan);
+    color: var(--bg);
+    box-shadow: 0 12px 32px rgba(34, 211, 238, 0.35);
+  }
+  .ctrl.play:hover {
+    background: var(--cyan);
+    box-shadow: 0 16px 40px rgba(34, 211, 238, 0.5);
+    transform: scale(1.05);
+  }
+  .ctrl.play svg { width: 32px; height: 32px; }
+  .ctrl.shuffle.active, .ctrl.repeat.active { color: var(--cyan); }
+  .ctrl.shuffle.active::after, .ctrl.repeat.active::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--cyan);
+  }
+
+  .secondary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 8px;
+    margin-bottom: 44px;
+  }
+  .icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 8px;
+    transition: color 0.15s;
+  }
+  .icon-btn:hover { color: var(--text); }
+  .icon-btn.liked { color: var(--cyan); }
+  .icon-btn svg { width: 22px; height: 22px; }
+  .volume-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    margin: 0 16px;
+  }
+  .volume-slider {
+    flex: 1;
+    height: 4px;
+    background: var(--bg-2);
+    border-radius: 2px;
+    position: relative;
+    cursor: pointer;
+  }
+  .volume-fill {
+    height: 100%;
+    background: var(--text-dim);
+    border-radius: 2px;
+    width: 70%;
+  }
+
+  .queue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 0 4px;
+  }
+  .queue-title {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+  .queue-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'SF Mono', Menlo, monospace;
+  }
+  .queue { display: flex; flex-direction: column; gap: 6px; }
+  .q-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .q-item:hover { background: var(--bg-1); }
+  .q-item.current {
+    background: linear-gradient(90deg, rgba(34, 211, 238, 0.12), transparent);
+  }
+  .q-item.current .q-title { color: var(--cyan); }
+  .q-thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg-2);
+    flex-shrink: 0;
+    position: relative;
+  }
+  .q-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .q-thumb .playing-indicator {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+  .q-item.current .playing-indicator { display: flex; }
+  .bar {
+    width: 3px;
+    background: var(--cyan);
+    border-radius: 1px;
+    animation: bar-dance 0.8s ease-in-out infinite;
+  }
+  .bar:nth-child(1) { height: 40%; animation-delay: 0s; }
+  .bar:nth-child(2) { height: 70%; animation-delay: 0.15s; }
+  .bar:nth-child(3) { height: 50%; animation-delay: 0.3s; }
+  @keyframes bar-dance {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(0.3); }
+  }
+  .q-info { flex: 1; min-width: 0; }
+  .q-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .q-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .q-duration {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'SF Mono', Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .full-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 36px;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--bg-1);
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    transition: all 0.15s;
+  }
+  .full-link:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: rgba(34, 211, 238, 0.06);
+  }
+  .full-link svg { width: 14px; height: 14px; }
+
+  .hidden { display: none !important; }
+
+  @media (min-width: 768px) {
+    .app { max-width: 480px; padding-top: 48px; }
+    .title { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="brand"><span class="brand-dot"></span>DR. DREY</div>
+    <button class="menu-btn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+    </button>
+  </div>
+
+  <div class="art-wrap">
+    <div class="art" id="art">
+      <img id="art-img" src="" alt="" />
+    </div>
+    <div class="art-glow" id="art-glow"></div>
+  </div>
+
+  <div class="info">
+    <div class="title" id="title">&mdash;</div>
+    <div class="artist">from <b id="album">&mdash;</b></div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-bar" id="progress">
+      <div class="progress-fill" id="progress-fill">
+        <div class="progress-thumb"></div>
+      </div>
+    </div>
+    <div class="times">
+      <span id="time-current">0:00</span>
+      <span id="time-total">0:00</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl small shuffle" id="shuffle-btn" aria-label="Shuffle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+    </button>
+    <button class="ctrl medium" id="prev-btn" aria-label="Previous">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+    </button>
+    <button class="ctrl play" id="play-btn" aria-label="Play">
+      <svg id="play-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      <svg id="pause-icon" class="hidden" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg>
+    </button>
+    <button class="ctrl medium" id="next-btn" aria-label="Next">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/></svg>
+    </button>
+    <button class="ctrl small repeat" id="repeat-btn" aria-label="Repeat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+    </button>
+  </div>
+
+  <div class="secondary">
+    <button class="icon-btn" id="like-btn" aria-label="Like">
+      <svg id="like-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </button>
+    <div class="volume-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;color:var(--text-dim)"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+      <div class="volume-slider" id="volume-slider">
+        <div class="volume-fill" id="volume-fill"></div>
+      </div>
+    </div>
+    <button class="icon-btn" aria-label="Share">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    </button>
+  </div>
+
+  <div class="queue-header">
+    <div class="queue-title">Up Next</div>
+    <div class="queue-count" id="queue-count">0</div>
+  </div>
+  <div class="queue" id="queue"></div>
+
+  <a class="full-link" href="https://drdrey.com" target="_blank" rel="noopener">
+    Full experience on drdrey.com
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+  </a>
+
+</div>
+
+<audio id="audio" preload="metadata"></audio>
+
+<script>
+  const BASE = 'https://drdrey.com';
+  const TRACKS = [
+    { slug: 'boot-sequence', title: 'Boot Sequence', album: 'Midnight Manual' },
+    { slug: '2am-confessions', title: '2AM Confessions', album: '4AM' },
+    { slug: 'boundaries', title: 'Boundaries', album: 'No Apologies EP' },
+    { slug: 'bigger-than-me', title: 'Bigger Than Me', album: '3' },
+    { slug: 'against-the-grain', title: 'Against The Grain', album: '4AM' },
+    { slug: 'auto-save', title: 'Auto-Save', album: 'Dark Mode' },
+    { slug: 'airplane-mode', title: 'Airplane Mode', album: 'Dark Mode' },
+    { slug: 'bad-habit', title: 'Bad Habit', album: '4AM' },
+    { slug: 'built-for-this', title: 'Built For This', album: 'No Apologies EP' },
+    { slug: 'brother', title: 'Brother', album: '3' },
+  ].map(t => ({
+    ...t,
+    audio: `${BASE}/audio/${t.slug}.mp3`,
+    cover: `${BASE}/covers/${t.slug}.jpg`,
+  }));
+
+  const audio = document.getElementById('audio');
+  const $ = id => document.getElementById(id);
+
+  let currentIndex = 0;
+  let isPlaying = false;
+  let isShuffle = false;
+  let repeatMode = 'off';
+  const liked = new Set();
+
+  function fmt(s) {
+    if (!isFinite(s) || s < 0) return '0:00';
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60).toString().padStart(2, '0');
+    return `${m}:${sec}`;
+  }
+
+  function setPlaying(p) {
+    isPlaying = p;
+    $('play-icon').classList.toggle('hidden', p);
+    $('pause-icon').classList.toggle('hidden', !p);
+    $('art').classList.toggle('playing', p);
+    $('play-btn').setAttribute('aria-label', p ? 'Pause' : 'Play');
+    // sync art-glow floating class via sibling toggle
+    const artGlow = $('art-glow');
+    artGlow.classList.toggle('playing-glow', p);
+  }
+
+  function updateLikeBtn() {
+    const liked_ = liked.has(TRACKS[currentIndex].slug);
+    $('like-btn').classList.toggle('liked', liked_);
+    $('like-icon').setAttribute('fill', liked_ ? 'currentColor' : 'none');
+  }
+
+  function loadTrack(i) {
+    currentIndex = (i + TRACKS.length) % TRACKS.length;
+    const t = TRACKS[currentIndex];
+    $('title').textContent = t.title;
+    $('album').textContent = t.album;
+    $('art-img').src = t.cover;
+    $('art-img').alt = t.title + ' cover';
+    $('art-glow').style.backgroundImage = `url("${t.cover}")`;
+    audio.src = t.audio;
+    updateLikeBtn();
+    highlightCurrentQueue();
+    if (isPlaying) audio.play().catch(() => setPlaying(false));
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: t.title,
+        artist: 'DR. DREY',
+        album: t.album,
+        artwork: [{ src: t.cover, sizes: '512x512', type: 'image/jpeg' }],
+      });
+    }
+  }
+
+  function highlightCurrentQueue() {
+    const items = document.querySelectorAll('.q-item');
+    items.forEach((el, i) => el.classList.toggle('current', i === currentIndex));
+  }
+
+  function togglePlay() {
+    if (audio.paused) audio.play().catch(e => console.error(e));
+    else audio.pause();
+  }
+
+  function next() {
+    if (isShuffle) {
+      let n;
+      do { n = Math.floor(Math.random() * TRACKS.length); } while (n === currentIndex && TRACKS.length > 1);
+      loadTrack(n);
+    } else {
+      loadTrack(currentIndex + 1);
+    }
+  }
+  function prev() {
+    if (audio.currentTime > 3) { audio.currentTime = 0; return; }
+    loadTrack(currentIndex - 1);
+  }
+
+  function buildQueueItem(track, index) {
+    const item = document.createElement('div');
+    item.className = 'q-item';
+
+    const thumb = document.createElement('div');
+    thumb.className = 'q-thumb';
+    const img = document.createElement('img');
+    img.src = track.cover;
+    img.alt = '';
+    img.loading = 'lazy';
+    thumb.appendChild(img);
+
+    const indicator = document.createElement('div');
+    indicator.className = 'playing-indicator';
+    for (let i = 0; i < 3; i++) {
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      indicator.appendChild(bar);
+    }
+    thumb.appendChild(indicator);
+
+    const info = document.createElement('div');
+    info.className = 'q-info';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'q-title';
+    titleEl.textContent = track.title;
+    const metaEl = document.createElement('div');
+    metaEl.className = 'q-meta';
+    metaEl.textContent = track.album;
+    info.appendChild(titleEl);
+    info.appendChild(metaEl);
+
+    const dur = document.createElement('div');
+    dur.className = 'q-duration';
+    dur.dataset.slug = track.slug;
+    dur.textContent = '—';
+
+    item.appendChild(thumb);
+    item.appendChild(info);
+    item.appendChild(dur);
+
+    item.addEventListener('click', () => {
+      loadTrack(index);
+      audio.play().catch(() => {});
+    });
+
+    return item;
+  }
+
+  function renderQueue() {
+    const queue = $('queue');
+    queue.replaceChildren();
+    $('queue-count').textContent = `${TRACKS.length} tracks`;
+    TRACKS.forEach((t, i) => queue.appendChild(buildQueueItem(t, i)));
+    highlightCurrentQueue();
+  }
+
+  // AUDIO EVENTS
+  audio.addEventListener('play', () => setPlaying(true));
+  audio.addEventListener('pause', () => setPlaying(false));
+  audio.addEventListener('timeupdate', () => {
+    const pct = (audio.currentTime / audio.duration) * 100 || 0;
+    $('progress-fill').style.width = pct + '%';
+    $('time-current').textContent = fmt(audio.currentTime);
+  });
+  audio.addEventListener('loadedmetadata', () => {
+    $('time-total').textContent = fmt(audio.duration);
+  });
+  audio.addEventListener('ended', () => {
+    if (repeatMode === 'one') {
+      audio.currentTime = 0;
+      audio.play();
+    } else if (repeatMode === 'all' || currentIndex < TRACKS.length - 1) {
+      next();
+    } else {
+      setPlaying(false);
+    }
+  });
+  audio.addEventListener('error', () => console.warn('Audio error for', TRACKS[currentIndex].slug));
+
+  // CONTROLS
+  $('play-btn').addEventListener('click', togglePlay);
+  $('next-btn').addEventListener('click', next);
+  $('prev-btn').addEventListener('click', prev);
+  $('shuffle-btn').addEventListener('click', () => {
+    isShuffle = !isShuffle;
+    $('shuffle-btn').classList.toggle('active', isShuffle);
+  });
+  $('repeat-btn').addEventListener('click', () => {
+    repeatMode = repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off';
+    $('repeat-btn').classList.toggle('active', repeatMode !== 'off');
+    $('repeat-btn').title = 'Repeat: ' + repeatMode;
+  });
+  $('like-btn').addEventListener('click', () => {
+    const slug = TRACKS[currentIndex].slug;
+    if (liked.has(slug)) liked.delete(slug); else liked.add(slug);
+    updateLikeBtn();
+  });
+
+  // PROGRESS SCRUB
+  const progress = $('progress');
+  let scrubbing = false;
+  function scrubTo(clientX) {
+    const rect = progress.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    if (audio.duration) audio.currentTime = pct * audio.duration;
+  }
+  progress.addEventListener('pointerdown', e => {
+    scrubbing = true;
+    progress.classList.add('active');
+    scrubTo(e.clientX);
+    progress.setPointerCapture(e.pointerId);
+  });
+  progress.addEventListener('pointermove', e => { if (scrubbing) scrubTo(e.clientX); });
+  progress.addEventListener('pointerup', () => {
+    scrubbing = false;
+    progress.classList.remove('active');
+  });
+
+  // VOLUME
+  const volSlider = $('volume-slider');
+  audio.volume = 0.7;
+  function setVolume(clientX) {
+    const rect = volSlider.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    audio.volume = pct;
+    $('volume-fill').style.width = (pct * 100) + '%';
+  }
+  volSlider.addEventListener('pointerdown', e => {
+    setVolume(e.clientX);
+    const onMove = ev => setVolume(ev.clientX);
+    const onUp = () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  });
+
+  // KEYBOARD
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+    if (e.code === 'ArrowRight') next();
+    if (e.code === 'ArrowLeft') prev();
+  });
+
+  // MEDIA SESSION
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.setActionHandler('play', togglePlay);
+    navigator.mediaSession.setActionHandler('pause', togglePlay);
+    navigator.mediaSession.setActionHandler('nexttrack', next);
+    navigator.mediaSession.setActionHandler('previoustrack', prev);
+  }
+
+  // INIT
+  renderQueue();
+  loadTrack(0);
+</script>
+</body>
+</html>
